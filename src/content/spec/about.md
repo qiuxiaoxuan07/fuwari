@@ -1,9 +1,3 @@
 # About
-This is the demo site for [Fuwari](https://github.com/saicaca/fuwari).
-
-::github{repo="saicaca/fuwari"}
-
-> ### Sources of images used in this site
-> - [Unsplash](https://unsplash.com/)
-> - [星と少女](https://www.pixiv.net/artworks/108916539) by [Stella](https://www.pixiv.net/users/93273965)
-> - [Rabbit - v1.4 Showcase](https://civitai.com/posts/586908) by [Rabbit_YourMajesty](https://civitai.com/user/Rabbit_YourMajesty)
+你好，我是秋晓轩，喜欢折腾网络与各种数码产品，也是游戏迷。这个网站主要记录一些有意思的东西，包括折腾的记录、开发教程、游戏心得等，希望能给同样喜欢折腾的你带来一点小小的帮助。
+（实际上是肥宅加社恐）
