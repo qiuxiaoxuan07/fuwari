@@ -73,7 +73,7 @@ const bannerOffset =
 ---
 
 <!DOCTYPE html>
-<html lang={siteLang} class="bg-[var(--page-bg)] transition text-[14px] md:text-[16px]"
+<html lang={siteLang} class:list={["bg-[var(--page-bg)] transition text-[14px] md:text-[16px]", "with-bg"]}
 	  data-overlayscrollbars-initialize
 >
 	<head>
@@ -151,6 +151,12 @@ const bannerOffset =
 	<body class=" min-h-screen transition " class:list={[{"lg:is-home": isHomePage, "enable-banner": enableBanner}]}
 		  data-overlayscrollbars-initialize
 	>
+		<!-- Dynamic Glassmorphic Background Glows -->
+		<div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+			<div class="glow-orb glow-orb-1"></div>
+			<div class="glow-orb glow-orb-2"></div>
+		</div>
+
 		<ConfigCarrier></ConfigCarrier>
 		<slot />
 
@@ -191,6 +197,60 @@ const bannerOffset =
 	.navbar-hidden {
 		@apply opacity-0 -translate-y-16
 	}
+}
+
+/* Dynamic Glassmorphic Glows Styles */
+@keyframes float-glow-1 {
+	0%, 100% {
+		transform: translate(0, 0) scale(1);
+	}
+	33% {
+		transform: translate(8vw, 12vh) scale(1.15);
+	}
+	66% {
+		transform: translate(-5vw, 18vh) scale(0.9);
+	}
+}
+
+@keyframes float-glow-2 {
+	0%, 100% {
+		transform: translate(0, 0) scale(1.15);
+	}
+	50% {
+		transform: translate(-10vw, -12vh) scale(0.85);
+	}
+}
+
+.glow-orb {
+	position: absolute;
+	border-radius: 50%;
+	filter: blur(130px);
+	opacity: 0.15;
+	pointer-events: none;
+	transition: opacity 0.5s ease;
+}
+:root.dark .glow-orb {
+	opacity: 0.12;
+}
+
+.glow-orb-1 {
+	top: 15%;
+	left: -20%;
+	width: 60vw;
+	height: 60vw;
+	max-width: 800px;
+	background: oklch(0.70 0.14 var(--hue));
+	animation: float-glow-1 30s infinite ease-in-out;
+}
+
+.glow-orb-2 {
+	bottom: 15%;
+	right: -20%;
+	width: 70vw;
+	height: 70vw;
+	max-width: 900px;
+	background: oklch(0.65 0.14 calc(var(--hue) - 50));
+	animation: float-glow-2 35s infinite ease-in-out;
 }
 </style>
 
