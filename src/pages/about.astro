@@ -1,10 +1,10 @@
 ---
 import { getEntry, render } from "astro:content";
 import Markdown from "@components/misc/Markdown.astro";
+import husbandAvatar from "../assets/images/avatar.png";
 import I18nKey from "../i18n/i18nKey";
 import { i18n } from "../i18n/translation";
 import MainGridLayout from "../layouts/MainGridLayout.astro";
-import husbandAvatar from "../assets/images/avatar.png";
 
 const aboutPost = await getEntry("spec", "about");
 
@@ -15,8 +15,7 @@ if (!aboutPost) {
 const { Content } = await render(aboutPost);
 
 const wifeConfig = {
-    avatar: "https://qiuxiaotao.cn/avatar.jpg",
-    homepage: "https://qiuxiaotao.com",
+	avatar: "https://qiuxiaotao.cn/avatar.jpg",
 };
 ---
 <MainGridLayout title={i18n(I18nKey.about)} description={i18n(I18nKey.about)}>
