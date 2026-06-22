@@ -1,7 +1,6 @@
 ---
 import { getEntry, render } from "astro:content";
 import Markdown from "@components/misc/Markdown.astro";
-import husbandAvatar from "/avatar.png";
 import I18nKey from "../i18n/i18nKey";
 import { i18n } from "../i18n/translation";
 import MainGridLayout from "../layouts/MainGridLayout.astro";
@@ -17,6 +16,8 @@ const { Content } = await render(aboutPost);
 const wifeConfig = {
 	avatar: "https://qiuxiaotao.cn/avatar.jpg",
 };
+
+const husbandAvatar = "/avatar.png";
 ---
 <MainGridLayout title={i18n(I18nKey.about)} description={i18n(I18nKey.about)}>
     <div class="flex flex-col w-full gap-6">
@@ -25,7 +26,7 @@ const wifeConfig = {
             <div class="inline-flex items-center p-1.5 rounded-full bg-[var(--card-bg)] border border-black/5 dark:border-white/10 shadow-sm relative backdrop-blur-md">
                 <!-- Husband Tab (Active) -->
                 <div class="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold text-white shadow-md cursor-default" style="background-color: var(--primary); box-shadow: 0 4px 12px color-mix(in srgb, var(--primary) 20%, transparent);">
-                    <img src={husbandAvatar.src} alt="秋晓轩" class="w-5 h-5 rounded-full border border-white/20 object-cover" />
+                    <img src={husbandAvatar} alt="秋晓轩" class="w-5 h-5 rounded-full border border-white/20 object-cover" />
                     秋晓轩
                 </div>
                 <!-- ECG + Heart Divider -->
