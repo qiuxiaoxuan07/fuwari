@@ -517,6 +517,10 @@ const setup = () => {
             }
         }, 200)
 	});
+	const scrollPlugin = window.swup.findPlugin('SwupScrollPlugin');
+	if (scrollPlugin) {
+		scrollPlugin.options.animateScroll = true;
+	}
 }
 if (window?.swup?.hooks) {
 	setup()
