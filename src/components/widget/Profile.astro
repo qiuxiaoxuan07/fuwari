@@ -25,10 +25,17 @@ const config = profileConfig;
         <div class="flex flex-wrap gap-2 justify-center mb-1">
             {config.links.length > 1 && config.links.map(item => {
                 const isCopy = item.url.startsWith('copy:');
+                let title = undefined;
+                if (isCopy) {
+                    if (item.name === 'QQ') title = '点击复制QQ号';
+                    else if (item.name === 'WeChat') title = '点击复制微信号';
+                    else title = `点击复制${item.name}`;
+                }
                 return (
                     <a 
                         rel="me" 
                         aria-label={item.name} 
+                        title={title}
                         href={isCopy ? 'javascript:void(0)' : item.url} 
                         target={isCopy ? undefined : '_blank'} 
                         data-copy-text={isCopy ? item.url.substring(5) : undefined}
@@ -44,10 +51,17 @@ const config = profileConfig;
             {config.links.length == 1 && (() => {
                 const item = config.links[0];
                 const isCopy = item.url.startsWith('copy:');
+                let title = undefined;
+                if (isCopy) {
+                    if (item.name === 'QQ') title = '点击复制QQ号';
+                    else if (item.name === 'WeChat') title = '点击复制微信号';
+                    else title = `点击复制${item.name}`;
+                }
                 return (
                     <a 
                         rel="me" 
                         aria-label={item.name} 
+                        title={title}
                         href={isCopy ? 'javascript:void(0)' : item.url} 
                         target={isCopy ? undefined : '_blank'} 
                         data-copy-text={isCopy ? item.url.substring(5) : undefined}
