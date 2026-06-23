@@ -23,17 +23,94 @@ const config = profileConfig;
         <div class="h-1 w-5 bg-[var(--primary)] mx-auto rounded-full mb-2 transition"></div>
         <div class="text-center text-neutral-400 mb-2.5 transition">{config.bio}</div>
         <div class="flex flex-wrap gap-2 justify-center mb-1">
-            {config.links.length > 1 && config.links.map(item =>
-                    <a rel="me" aria-label={item.name} href={item.url} target="_blank" class="btn-regular rounded-lg h-10 w-10 active:scale-90">
+            {config.links.length > 1 && config.links.map(item => {
+                const isCopy = item.url.startsWith('copy:');
+                return (
+                    <a 
+                        rel="me" 
+                        aria-label={item.name} 
+                        href={isCopy ? 'javascript:void(0)' : item.url} 
+                        target={isCopy ? undefined : '_blank'} 
+                        data-copy-text={isCopy ? item.url.substring(5) : undefined}
+                        class:list={[
+                            "btn-regular rounded-lg h-10 w-10 active:scale-90",
+                            { "copy-link-btn": isCopy }
+                        ]}
+                    >
                         <Icon name={item.icon} class="text-[1.5rem]"></Icon>
                     </a>
-            )}
-            {config.links.length == 1 && <a rel="me" aria-label={config.links[0].name} href={config.links[0].url} target="_blank"
-                                            class="btn-regular rounded-lg h-10 gap-2 px-3 font-bold active:scale-95">
-                <Icon name={config.links[0].icon} class="text-[1.5rem]"></Icon>
-                {config.links[0].name}
-            </a>}
+                )
+            })}
+            {config.links.length == 1 && (() => {
+                const item = config.links[0];
+                const isCopy = item.url.startsWith('copy:');
+                return (
+                    <a 
+                        rel="me" 
+                        aria-label={item.name} 
+                        href={isCopy ? 'javascript:void(0)' : item.url} 
+                        target={isCopy ? undefined : '_blank'} 
+                        data-copy-text={isCopy ? item.url.substring(5) : undefined}
+                        class:list={[
+                            "btn-regular rounded-lg h-10 gap-2 px-3 font-bold active:scale-95",
+                            { "copy-link-btn": isCopy }
+                        ]}
+                    >
+                        <Icon name={item.icon} class="text-[1.5rem]"></Icon>
+                        {item.name}
+                    </a>
+                )
+            })()}
         </div>
     </div>
 </div>
 
+<script>
+document.addEventListener("click", function (e: MouseEvent) {
+    const target = e.target as Element | null;
+    const btn = target?.closest(".copy-link-btn");
+    if (btn) {
+        e.preventDefault();
+        const text = btn.getAttribute("data-copy-text");
+        if (text) {
+            navigator.clipboard.writeText(text).then(() => {
+                const lang = document.documentElement.lang || "en";
+                const prefix = (lang.startsWith("zh") || lang.startsWith("ZH")) ? "已复制" : "Copied";
+                showToast(prefix + ": " + text);
+            }).catch(err => {
+                console.error("Failed to copy text: ", err);
+            });
+        }
+    }
+});
+
+function showToast(message: string) {
+    const toast = document.createElement("div");
+    toast.className = "fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-black/80 dark:bg-neutral-800/90 text-white dark:text-neutral-100 px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 text-sm font-medium transition-all duration-300 opacity-0 translate-y-[-10px] pointer-events-none border border-neutral-700/50 dark:border-neutral-600/50";
+    
+    toast.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+        <span>${message}</span>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Trigger reflow
+    toast.offsetHeight;
+    
+    // Animate in
+    toast.classList.remove("opacity-0", "translate-y-[-10px]");
+    toast.classList.add("opacity-100", "translate-y-0");
+    
+    // Hide and remove
+    setTimeout(() => {
+        toast.classList.remove("opacity-100", "translate-y-0");
+        toast.classList.add("opacity-0", "translate-y-[-10px]");
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }, 2000);
+}
+</script>

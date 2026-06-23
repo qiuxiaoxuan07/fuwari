@@ -76,9 +76,9 @@ export const profileConfig: ProfileConfig = {
 			url: "mailto:me@qiuxiaoxuan.com",
 		},
 		{
-			name: "Telegram",
-			icon: "fa6-brands:telegram",
-			url: "https://t.me/qiuxiaoxuan",
+			name: "QQ",
+			icon: "fa6-brands:qq",
+			url: "copy:1136990170",
 		},
 	],
 };
