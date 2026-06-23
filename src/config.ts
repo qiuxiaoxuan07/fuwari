@@ -17,7 +17,7 @@ export const siteConfig: SiteConfig = {
 	},
 	banner: {
 		enable: true,
-		src: "/banner.png", // Relative to the /src directory. Relative to the /public directory if it starts with '/'
+		src: "https://qiuxiaotao.cn/banner-xuan.png", // Relative to the /src directory. Relative to the /public directory if it starts with '/'
 		position: "top", // Equivalent to object-position, only supports 'top', 'center', 'bottom'. 'center' by default
 		credit: {
 			enable: false, // Display the credit text of the banner image
@@ -32,7 +32,7 @@ export const siteConfig: SiteConfig = {
 	favicon: [
 		// Leave this array empty to use the default favicon
 		{
-			src: "/favicon/favicon.ico", // Path of the favicon, relative to the /public directory
+			src: "https://qiuxiaotao.cn/favicon-xuan.ico", // Path of the favicon, relative to the /public directory
 		},
 	],
 };
@@ -51,7 +51,7 @@ export const navBarConfig: NavBarConfig = {
 };
 
 export const profileConfig: ProfileConfig = {
-	avatar: "/avatar.png", // Relative to the /src directory. Relative to the /public directory if it starts with '/'
+	avatar: "https://qiuxiaotao.cn/avatar-xuan.png", // Relative to the /src directory. Relative to the /public directory if it starts with '/'
 	name: "秋晓轩",
 	bio: "一蓑烟雨任平生",
 	links: [
