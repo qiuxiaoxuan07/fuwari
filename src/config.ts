@@ -44,9 +44,23 @@ export const navBarConfig: NavBarConfig = {
 		LinkPreset.About,
 		{
 			name: "会议",
-			url: "/meeting/", // 对应刚才创建的 src/pages/meeting.astro
+			url: "/meeting/", // 对应刚才创建 a 的 src/pages/meeting.astro
 			external: false, // 设为 false 表示站内链接
 		},
+		{
+			name: "工具",
+			url: "#",
+			external: false,
+			sublinks: [
+				{ name: "在线秒表", url: "/tools/stopwatch/" },
+				{ name: "网络诊断", url: "/tools/network/" },
+			]
+		},
+		{
+			name: "友链",
+			url: "/friends/",
+			external: false,
+		}
 	],
 };
 

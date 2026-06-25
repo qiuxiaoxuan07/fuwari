@@ -1,0 +1,13 @@
+---
+import MainGridLayout from "../../layouts/MainGridLayout.astro";
+import NetworkDiagnostic from "../../components/NetworkDiagnostic.svelte";
+---
+<MainGridLayout title="网络与 P2P 穿透诊断" description="在线测试您的网络环境，支持检测公网 IP、IPv6 是否启用，以及 WebRTC STUN P2P 打洞能力">
+    <div class="flex flex-col w-full gap-6">
+        <div class="flex w-full rounded-[var(--radius-large)] overflow-hidden relative min-h-32">
+            <div class="card-base z-10 px-6 py-6 relative w-full flex flex-col items-center">
+                <NetworkDiagnostic client:only="svelte" />
+            </div>
+        </div>
+    </div>
+</MainGridLayout>
