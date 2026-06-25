@@ -54,13 +54,13 @@ export const navBarConfig: NavBarConfig = {
 			sublinks: [
 				{ name: "在线秒表", url: "/tools/stopwatch/" },
 				{ name: "网络诊断", url: "/tools/network/" },
-			]
+			],
 		},
 		{
 			name: "友链",
 			url: "/friends/",
 			external: false,
-		}
+		},
 	],
 };
 

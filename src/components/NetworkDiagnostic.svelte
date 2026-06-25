@@ -1,7 +1,7 @@
 <script lang="ts">
 import Icon from "@iconify/svelte";
-import { onMount } from "svelte";
 import { url } from "@utils/url-utils.ts";
+import { onMount } from "svelte";
 
 // Network Diagnostic States
 let { ...props }: { [key: string]: unknown } = $props();
@@ -15,26 +15,50 @@ let isTestingV4Geo = $state(false);
 let isTestingV6Geo = $state(false);
 
 // NAT / P2P Diagnostic States
-let natState = $state<'idle' | 'testing' | 'srflx' | 'host' | 'failed'>('idle');
-let natType = $state('未检测');
-let detailedNatType = $state('未检测');
+let natState = $state<"idle" | "testing" | "srflx" | "host" | "failed">("idle");
+let natType = $state("未检测");
+let detailedNatType = $state("未检测");
 
 // HTTP Latency Nodes
 let latencies = $state([
-	{ name: "博客本站", url: "/", ms: null as number | null, state: 'idle' as 'idle' | 'testing' | 'done' | 'error' },
-	{ name: "Cloudflare CDN", url: "https://cloudflare.com/cdn-cgi/trace", ms: null as number | null, state: 'idle' as 'idle' | 'testing' | 'done' | 'error' },
-	{ name: "GitHub", url: "https://github.com/favicon.ico", ms: null as number | null, state: 'idle' as 'idle' | 'testing' | 'done' | 'error' },
-	{ name: "Bilibili", url: "https://www.bilibili.com/favicon.ico", ms: null as number | null, state: 'idle' as 'idle' | 'testing' | 'done' | 'error' }
+	{
+		name: "博客本站",
+		url: "/",
+		ms: null as number | null,
+		state: "idle" as "idle" | "testing" | "done" | "error",
+	},
+	{
+		name: "Cloudflare CDN",
+		url: "https://cloudflare.com/cdn-cgi/trace",
+		ms: null as number | null,
+		state: "idle" as "idle" | "testing" | "done" | "error",
+	},
+	{
+		name: "GitHub",
+		url: "https://github.com/favicon.ico",
+		ms: null as number | null,
+		state: "idle" as "idle" | "testing" | "done" | "error",
+	},
+	{
+		name: "Bilibili",
+		url: "https://www.bilibili.com/favicon.ico",
+		ms: null as number | null,
+		state: "idle" as "idle" | "testing" | "done" | "error",
+	},
 ]);
 
 // Custom fetch helper with abort controller for timeout
-async function fetchWithTimeout(url: string, options: RequestInit = {}, timeout = 3000) {
+async function fetchWithTimeout(
+	url: string,
+	options: RequestInit = {},
+	timeout = 3000,
+) {
 	const controller = new AbortController();
 	const id = setTimeout(() => controller.abort(), timeout);
 	try {
 		const response = await fetch(url, {
 			...options,
-			signal: controller.signal
+			signal: controller.signal,
 		});
 		return response;
 	} finally {
@@ -49,13 +73,22 @@ async function detectIPv4() {
 	ipV4Geo = "获取中...";
 	try {
 		// Use forge.speedtest.cn for fast Chinese geolocation
-		const res = await fetchWithTimeout("https://forge.speedtest.cn/api/v1/free/ip", {}, 2500);
+		const res = await fetchWithTimeout(
+			"https://forge.speedtest.cn/api/v1/free/ip",
+			{},
+			2500,
+		);
 		const data = await res.json();
 		ipV4 = data.ip || "获取失败";
 		if (data.country) {
-			const geoParts = [data.country, data.province, data.city, data.distinct].filter(Boolean);
-			const ispPart = data.isp ? `(${data.isp})` : '';
-			ipV4Geo = `${geoParts.join(' ')} ${ispPart}`;
+			const geoParts = [
+				data.country,
+				data.province,
+				data.city,
+				data.distinct,
+			].filter(Boolean);
+			const ispPart = data.isp ? `(${data.isp})` : "";
+			ipV4Geo = `${geoParts.join(" ")} ${ispPart}`;
 		} else {
 			ipV4Geo = "位置获取失败";
 		}
@@ -65,9 +98,11 @@ async function detectIPv4() {
 			const res = await fetchWithTimeout("https://ipapi.co/json/", {}, 2500);
 			const data = await res.json();
 			ipV4 = data.ip || "获取失败";
-			const geoParts = [data.country_name, data.region, data.city].filter(Boolean);
-			const ispPart = data.org ? `(${data.org})` : '';
-			ipV4Geo = `${geoParts.join(' ')} ${ispPart}`;
+			const geoParts = [data.country_name, data.region, data.city].filter(
+				Boolean,
+			);
+			const ispPart = data.org ? `(${data.org})` : "";
+			ipV4Geo = `${geoParts.join(" ")} ${ispPart}`;
 		} catch (err) {
 			ipV4Geo = "位置获取失败";
 		}
@@ -83,17 +118,29 @@ async function detectIPv6() {
 	ipV6 = "获取中...";
 	ipV6Geo = "获取中...";
 	try {
-		const res = await fetchWithTimeout("https://api6.ipify.org?format=json", {}, 2500);
+		const res = await fetchWithTimeout(
+			"https://api6.ipify.org?format=json",
+			{},
+			2500,
+		);
 		const data = await res.json();
 		ipV6 = data.ip || "获取失败";
-		
-		if (ipV6.includes(':')) {
+
+		if (ipV6.includes(":")) {
 			try {
-				const geoRes = await fetchWithTimeout(`https://ipapi.co/${ipV6}/json/`, {}, 2500);
+				const geoRes = await fetchWithTimeout(
+					`https://ipapi.co/${ipV6}/json/`,
+					{},
+					2500,
+				);
 				const geoData = await geoRes.json();
-				const geoParts = [geoData.country_name, geoData.region, geoData.city].filter(Boolean);
-				const ispPart = geoData.org ? `(${geoData.org})` : '';
-				ipV6Geo = `${geoParts.join(' ')} ${ispPart}`;
+				const geoParts = [
+					geoData.country_name,
+					geoData.region,
+					geoData.city,
+				].filter(Boolean);
+				const ispPart = geoData.org ? `(${geoData.org})` : "";
+				ipV6Geo = `${geoParts.join(" ")} ${ispPart}`;
 			} catch (err) {
 				ipV6Geo = "位置获取失败";
 			}
@@ -110,37 +157,42 @@ async function detectIPv6() {
 }
 
 function isPrivateIP(ip: string) {
-	if (ip.includes(':')) {
+	if (ip.includes(":")) {
 		// IPv6 private check
-		return ip.startsWith('fe80:') || ip.startsWith('::') || ip.startsWith('fc00:') || ip.startsWith('fd00:');
+		return (
+			ip.startsWith("fe80:") ||
+			ip.startsWith("::") ||
+			ip.startsWith("fc00:") ||
+			ip.startsWith("fd00:")
+		);
 	}
 	// IPv4 private check
-	const parts = ip.split('.').map(Number);
+	const parts = ip.split(".").map(Number);
 	return (
 		parts[0] === 10 ||
 		(parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||
 		(parts[0] === 192 && parts[1] === 168) ||
 		parts[0] === 127 ||
-		parts[0] === 169 && parts[1] === 254
+		(parts[0] === 169 && parts[1] === 254)
 	);
 }
 
 async function testNAT() {
-	natState = 'testing';
-	natType = '正在测试 WebRTC P2P STUN 穿透与反射能力...';
-	detailedNatType = '测试中...';
+	natState = "testing";
+	natType = "正在测试 WebRTC P2P STUN 穿透与反射能力...";
+	detailedNatType = "测试中...";
 	try {
 		const pc = new RTCPeerConnection({
 			iceServers: [
-				{ urls: 'stun:stun.l.google.com:19302' },
-				{ urls: 'stun:stun.twilio.com:3478' }
-			]
+				{ urls: "stun:stun.l.google.com:19302" },
+				{ urls: "stun:stun.twilio.com:3478" },
+			],
 		});
 
-		let srflxCandidates: { ip: string, port: number, rport: number }[] = [];
+		let srflxCandidates: { ip: string; port: number; rport: number }[] = [];
 		let hostCandidates: string[] = [];
 
-		pc.createDataChannel('test-p2p');
+		pc.createDataChannel("test-p2p");
 		const offer = await pc.createOffer();
 		await pc.setLocalDescription(offer);
 
@@ -148,16 +200,17 @@ async function testNAT() {
 			pc.onicecandidate = (event) => {
 				if (event.candidate) {
 					const cand = event.candidate.candidate;
-					if (cand.includes('srflx')) {
-						const parts = cand.split(' ');
+					if (cand.includes("srflx")) {
+						const parts = cand.split(" ");
 						const ip = parts[4];
-						const port = parseInt(parts[5], 10);
-						const rportIdx = parts.indexOf('rport');
-						const rport = rportIdx !== -1 ? parseInt(parts[rportIdx + 1], 10) : 0;
+						const port = Number.parseInt(parts[5], 10);
+						const rportIdx = parts.indexOf("rport");
+						const rport =
+							rportIdx !== -1 ? Number.parseInt(parts[rportIdx + 1], 10) : 0;
 						srflxCandidates.push({ ip, port, rport });
 					}
-					if (cand.includes('host')) {
-						const parts = cand.split(' ');
+					if (cand.includes("host")) {
+						const parts = cand.split(" ");
 						const ip = parts[4];
 						hostCandidates.push(ip);
 					}
@@ -181,15 +234,16 @@ async function testNAT() {
 		}
 
 		if (hasPublicHost) {
-			natState = 'host';
-			detailedNatType = '公网 IP (No NAT)';
-			natType = '您的设备直接处于公网，不受任何 NAT 限制影响，P2P 联机通道极度通畅。';
+			natState = "host";
+			detailedNatType = "公网 IP (No NAT)";
+			natType =
+				"您的设备直接处于公网，不受任何 NAT 限制影响，P2P 联机通道极度通畅。";
 			return;
 		}
 
 		if (srflxCandidates.length > 0) {
 			// Group mapping ports by local rport to detect Symmetric behavior
-			const rports: { [key: number]: { ip: string, port: number }[] } = {};
+			const rports: { [key: number]: { ip: string; port: number }[] } = {};
 			for (const cand of srflxCandidates) {
 				if (!rports[cand.rport]) {
 					rports[cand.rport] = [];
@@ -202,7 +256,9 @@ async function testNAT() {
 				const mappings = rports[rport];
 				if (mappings.length > 1) {
 					const first = mappings[0];
-					const hasDifferent = mappings.some(m => m.ip !== first.ip || m.port !== first.port);
+					const hasDifferent = mappings.some(
+						(m) => m.ip !== first.ip || m.port !== first.port,
+					);
 					if (hasDifferent) {
 						isSymmetric = true;
 						break;
@@ -210,40 +266,47 @@ async function testNAT() {
 				}
 			}
 
-			natState = 'srflx';
+			natState = "srflx";
 			if (isSymmetric) {
-				detailedNatType = '对称型 (Symmetric NAT / NAT 4)';
-				natType = '您的网络环境对不同的连接使用不同的公网端口。P2P 打洞联机极为困难，极易出现无法加入游戏，可能需要通过中继服务器进行连接。';
+				detailedNatType = "对称型 (Symmetric NAT / NAT 4)";
+				natType =
+					"您的网络环境对不同的连接使用不同的公网端口。P2P 打洞联机极为困难，极易出现无法加入游戏，可能需要通过中继服务器进行连接。";
 			} else {
-				detailedNatType = '圆锥型 (Cone NAT / NAT 1/2/3)';
-				natType = '您的网络环境端口映射规则固定，支持 P2P 直连与打洞。绝大多数 P2P 联机游戏和打洞均可顺利连通，联机环境良好。';
+				detailedNatType = "圆锥型 (Cone NAT / NAT 1/2/3)";
+				natType =
+					"您的网络环境端口映射规则固定，支持 P2P 直连与打洞。绝大多数 P2P 联机游戏和打洞均可顺利连通，联机环境良好。";
 			}
 		} else {
-			natState = 'failed';
-			detailedNatType = '受限 / 防火墙拦截';
-			natType = '未能建立 STUN 通信。您的局域网防火墙或网络服务商可能彻底拦截了 UDP/WebRTC 打洞端口。';
+			natState = "failed";
+			detailedNatType = "受限 / 防火墙拦截";
+			natType =
+				"未能建立 STUN 通信。您的局域网防火墙或网络服务商可能彻底拦截了 UDP/WebRTC 打洞端口。";
 		}
 	} catch (e) {
-		natState = 'failed';
-		detailedNatType = '不支持';
-		natType = '测试出错，可能您的浏览器禁用了 WebRTC 的 ICE 候选查询逻辑。';
+		natState = "failed";
+		detailedNatType = "不支持";
+		natType = "测试出错，可能您的浏览器禁用了 WebRTC 的 ICE 候选查询逻辑。";
 	}
 }
 
-async function testNodeLatency(node: typeof latencies[0]) {
-	node.state = 'testing';
+async function testNodeLatency(node: (typeof latencies)[0]) {
+	node.state = "testing";
 	node.ms = null;
 	const start = performance.now();
 	try {
-		await fetchWithTimeout(node.url, {
-			mode: 'no-cors',
-			cache: 'no-store'
-		}, 3000);
+		await fetchWithTimeout(
+			node.url,
+			{
+				mode: "no-cors",
+				cache: "no-store",
+			},
+			3000,
+		);
 		node.ms = Math.round(performance.now() - start);
-		node.state = 'done';
+		node.state = "done";
 	} catch (e) {
 		node.ms = null;
-		node.state = 'error';
+		node.state = "error";
 	}
 }
 

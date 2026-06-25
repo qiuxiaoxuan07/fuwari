@@ -7,19 +7,19 @@ let { ...props }: { [key: string]: unknown } = $props();
 let totalTime = $state(0); // in ms
 let laps = $state<{ id: number; time: number; split: number }[]>([]);
 
-let intervalId: any = null;
+let intervalId: ReturnType<typeof setInterval> | null = null;
 let startTime = 0;
 let elapsedBefore = 0;
 
 // Current dynamic rotation angle for visual timer ring
 let rotationAngle = $state(0);
-let rotationInterval: any = null;
+let rotationInterval: ReturnType<typeof setInterval> | null = null;
 
 function formatTime(ms: number) {
 	const minutes = Math.floor(ms / 60000);
 	const seconds = Math.floor((ms % 60000) / 1000);
 	const centiseconds = Math.floor((ms % 1000) / 10);
-	return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
+	return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}.${centiseconds.toString().padStart(2, "0")}`;
 }
 
 function start() {
@@ -54,14 +54,15 @@ function reset() {
 
 function addLap() {
 	if (!isRunning && totalTime === 0) return;
-	const currentLapTime = laps.length === 0 ? totalTime : totalTime - laps[0].split;
+	const currentLapTime =
+		laps.length === 0 ? totalTime : totalTime - laps[0].split;
 	laps = [
 		{
 			id: laps.length + 1,
 			time: currentLapTime,
-			split: totalTime
+			split: totalTime,
 		},
-		...laps
+		...laps,
 	];
 }
 
