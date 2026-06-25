@@ -72,40 +72,66 @@ async function detectIPv4() {
 	ipV4 = "获取中...";
 	ipV4Geo = "获取中...";
 	try {
-		// Use forge.speedtest.cn for fast Chinese geolocation
-		const res = await fetchWithTimeout(
-			"https://forge.speedtest.cn/api/v1/free/ip",
-			{},
-			2500,
-		);
-		const data = await res.json();
-		ipV4 = data.ip || "获取失败";
-		if (data.country) {
-			const geoParts = [
-				data.country,
-				data.province,
-				data.city,
-				data.distinct,
-			].filter(Boolean);
-			const ispPart = data.isp ? `(${data.isp})` : "";
-			ipV4Geo = `${geoParts.join(" ")} ${ispPart}`;
-		} else {
-			ipV4Geo = "位置获取失败";
-		}
-	} catch (e) {
-		// Fallback to ipapi.co
+		// Try API 1: ip.sb (supports CORS and HTTPS)
 		try {
-			const res = await fetchWithTimeout("https://ipapi.co/json/", {}, 2500);
+			const res = await fetchWithTimeout("https://api.ip.sb/geoip", {}, 2500);
 			const data = await res.json();
-			ipV4 = data.ip || "获取失败";
-			const geoParts = [data.country_name, data.region, data.city].filter(
-				Boolean,
+			if (data.ip) {
+				ipV4 = data.ip;
+				const geoParts = [data.country, data.region, data.city].filter(Boolean);
+				const ispPart =
+					data.isp || data.organization
+						? `(${data.isp || data.organization})`
+						: "";
+				ipV4Geo =
+					geoParts.length > 0
+						? `${geoParts.join(" ")} ${ispPart}`.trim()
+						: "未知";
+				return;
+			}
+		} catch (e) {}
+
+		// Try API 2: freeipapi.com (supports CORS and HTTPS)
+		try {
+			const res = await fetchWithTimeout(
+				"https://free.freeipapi.com/api/json/",
+				{},
+				2500,
 			);
-			const ispPart = data.org ? `(${data.org})` : "";
-			ipV4Geo = `${geoParts.join(" ")} ${ispPart}`;
-		} catch (err) {
-			ipV4Geo = "位置获取失败";
-		}
+			const data = await res.json();
+			if (data.ipAddress) {
+				ipV4 = data.ipAddress;
+				const geoParts = [
+					data.countryName,
+					data.regionName,
+					data.cityName,
+				].filter(Boolean);
+				const ispPart = data.asnOrganization ? `(${data.asnOrganization})` : "";
+				ipV4Geo =
+					geoParts.length > 0
+						? `${geoParts.join(" ")} ${ispPart}`.trim()
+						: "未知";
+				return;
+			}
+		} catch (e) {}
+
+		// Try API 3: ipify (IP only)
+		try {
+			const res = await fetchWithTimeout(
+				"https://api.ipify.org?format=json",
+				{},
+				2500,
+			);
+			const data = await res.json();
+			if (data.ip) {
+				ipV4 = data.ip;
+				ipV4Geo = "位置获取失败";
+				return;
+			}
+		} catch (e) {}
+
+		ipV4 = "获取失败";
+		ipV4Geo = "位置获取失败";
 	} finally {
 		isTestingV4 = false;
 		isTestingV4Geo = false;
@@ -127,6 +153,30 @@ async function detectIPv6() {
 		ipV6 = data.ip || "获取失败";
 
 		if (ipV6.includes(":")) {
+			// Try API 1: freeipapi.com
+			try {
+				const geoRes = await fetchWithTimeout(
+					`https://free.freeipapi.com/api/json/${ipV6}`,
+					{},
+					2500,
+				);
+				const geoData = await geoRes.json();
+				const geoParts = [
+					geoData.countryName,
+					geoData.regionName,
+					geoData.cityName,
+				].filter(Boolean);
+				const ispPart = geoData.asnOrganization
+					? `(${geoData.asnOrganization})`
+					: "";
+				ipV6Geo =
+					geoParts.length > 0
+						? `${geoParts.join(" ")} ${ispPart}`.trim()
+						: "未知";
+				return;
+			} catch (err) {}
+
+			// Try API 2: ipapi.co
 			try {
 				const geoRes = await fetchWithTimeout(
 					`https://ipapi.co/${ipV6}/json/`,
@@ -140,10 +190,14 @@ async function detectIPv6() {
 					geoData.city,
 				].filter(Boolean);
 				const ispPart = geoData.org ? `(${geoData.org})` : "";
-				ipV6Geo = `${geoParts.join(" ")} ${ispPart}`;
-			} catch (err) {
-				ipV6Geo = "位置获取失败";
-			}
+				ipV6Geo =
+					geoParts.length > 0
+						? `${geoParts.join(" ")} ${ispPart}`.trim()
+						: "未知";
+				return;
+			} catch (err) {}
+
+			ipV6Geo = "位置获取失败";
 		} else {
 			ipV6Geo = "无";
 		}
@@ -157,6 +211,9 @@ async function detectIPv6() {
 }
 
 function isPrivateIP(ip: string) {
+	if (ip.endsWith(".local")) {
+		return true;
+	}
 	if (ip.includes(":")) {
 		// IPv6 private check
 		return (
@@ -168,6 +225,9 @@ function isPrivateIP(ip: string) {
 	}
 	// IPv4 private check
 	const parts = ip.split(".").map(Number);
+	if (parts.length !== 4 || parts.some(Number.isNaN)) {
+		return true; // Treat invalid/mDNS hostnames as private/local
+	}
 	return (
 		parts[0] === 10 ||
 		(parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||
@@ -224,16 +284,16 @@ async function testNAT() {
 		await candidatePromise;
 		pc.close();
 
-		// Check for public IP in host candidates first
-		let hasPublicHost = false;
+		// Check for public IPv4 in host candidates first
+		let hasPublicIPv4Host = false;
 		for (const ip of hostCandidates) {
-			if (!isPrivateIP(ip)) {
-				hasPublicHost = true;
+			if (!ip.includes(":") && !ip.endsWith(".local") && !isPrivateIP(ip)) {
+				hasPublicIPv4Host = true;
 				break;
 			}
 		}
 
-		if (hasPublicHost) {
+		if (hasPublicIPv4Host) {
 			natState = "host";
 			detailedNatType = "公网 IP (No NAT)";
 			natType =
@@ -274,7 +334,7 @@ async function testNAT() {
 			} else {
 				detailedNatType = "圆锥型 (Cone NAT / NAT 1/2/3)";
 				natType =
-					"您的网络环境端口映射规则固定，支持 P2P 直连与打洞。绝大多数 P2P 联机游戏和打洞均可顺利连通，联机环境良好。";
+					"您的网络环境端口映射规则固定，支持 P2P 直连与打洞。这通常对应 NAT 1 (Full Cone)、NAT 2 或 NAT 3，绝大多数 P2P 联机游戏和打洞均可顺利连通，联机环境良好。";
 			}
 		} else {
 			natState = "failed";
