@@ -8,11 +8,9 @@ let { ...props }: { [key: string]: unknown } = $props();
 let ipV4 = $state("未检测");
 let ipV6 = $state("未检测");
 let ipV4Geo = $state("未检测");
-let ipV6Geo = $state("未检测");
 let isTestingV4 = $state(false);
 let isTestingV6 = $state(false);
 let isTestingV4Geo = $state(false);
-let isTestingV6Geo = $state(false);
 
 // NAT / P2P Diagnostic States
 let natState = $state<"idle" | "testing" | "srflx" | "host" | "failed">("idle");
@@ -72,11 +70,15 @@ async function detectIPv4() {
 	ipV4 = "获取中...";
 	ipV4Geo = "获取中...";
 	try {
-		// Try API 1: ip.sb (supports CORS and HTTPS)
+		// Try API 1: api-ipv4.ip.sb (forces IPv4 and supports CORS/HTTPS)
 		try {
-			const res = await fetchWithTimeout("https://api.ip.sb/geoip", {}, 2500);
+			const res = await fetchWithTimeout(
+				"https://api-ipv4.ip.sb/geoip",
+				{},
+				2500,
+			);
 			const data = await res.json();
-			if (data.ip) {
+			if (data.ip && !data.ip.includes(":")) {
 				ipV4 = data.ip;
 				const geoParts = [data.country, data.region, data.city].filter(Boolean);
 				const ispPart =
@@ -91,41 +93,40 @@ async function detectIPv4() {
 			}
 		} catch (e) {}
 
-		// Try API 2: freeipapi.com (supports CORS and HTTPS)
+		// Try API 2: ipify (IPv4 only) + freeipapi (passing IPv4)
 		try {
-			const res = await fetchWithTimeout(
-				"https://free.freeipapi.com/api/json/",
-				{},
-				2500,
-			);
-			const data = await res.json();
-			if (data.ipAddress) {
-				ipV4 = data.ipAddress;
-				const geoParts = [
-					data.countryName,
-					data.regionName,
-					data.cityName,
-				].filter(Boolean);
-				const ispPart = data.asnOrganization ? `(${data.asnOrganization})` : "";
-				ipV4Geo =
-					geoParts.length > 0
-						? `${geoParts.join(" ")} ${ispPart}`.trim()
-						: "未知";
-				return;
-			}
-		} catch (e) {}
-
-		// Try API 3: ipify (IP only)
-		try {
-			const res = await fetchWithTimeout(
+			const ipRes = await fetchWithTimeout(
 				"https://api.ipify.org?format=json",
 				{},
 				2500,
 			);
-			const data = await res.json();
-			if (data.ip) {
-				ipV4 = data.ip;
-				ipV4Geo = "位置获取失败";
+			const ipData = await ipRes.json();
+			if (ipData.ip && !ipData.ip.includes(":")) {
+				ipV4 = ipData.ip;
+
+				// Fetch location using the retrieved IPv4
+				try {
+					const geoRes = await fetchWithTimeout(
+						`https://free.freeipapi.com/api/json/${ipV4}`,
+						{},
+						2500,
+					);
+					const geoData = await geoRes.json();
+					const geoParts = [
+						geoData.countryName,
+						geoData.regionName,
+						geoData.cityName,
+					].filter(Boolean);
+					const ispPart = geoData.asnOrganization
+						? `(${geoData.asnOrganization})`
+						: "";
+					ipV4Geo =
+						geoParts.length > 0
+							? `${geoParts.join(" ")} ${ispPart}`.trim()
+							: "未知";
+				} catch (geoErr) {
+					ipV4Geo = "位置获取失败";
+				}
 				return;
 			}
 		} catch (e) {}
@@ -140,9 +141,7 @@ async function detectIPv4() {
 
 async function detectIPv6() {
 	isTestingV6 = true;
-	isTestingV6Geo = true;
 	ipV6 = "获取中...";
-	ipV6Geo = "获取中...";
 	try {
 		const res = await fetchWithTimeout(
 			"https://api6.ipify.org?format=json",
@@ -151,62 +150,10 @@ async function detectIPv6() {
 		);
 		const data = await res.json();
 		ipV6 = data.ip || "获取失败";
-
-		if (ipV6.includes(":")) {
-			// Try API 1: freeipapi.com
-			try {
-				const geoRes = await fetchWithTimeout(
-					`https://free.freeipapi.com/api/json/${ipV6}`,
-					{},
-					2500,
-				);
-				const geoData = await geoRes.json();
-				const geoParts = [
-					geoData.countryName,
-					geoData.regionName,
-					geoData.cityName,
-				].filter(Boolean);
-				const ispPart = geoData.asnOrganization
-					? `(${geoData.asnOrganization})`
-					: "";
-				ipV6Geo =
-					geoParts.length > 0
-						? `${geoParts.join(" ")} ${ispPart}`.trim()
-						: "未知";
-				return;
-			} catch (err) {}
-
-			// Try API 2: ipapi.co
-			try {
-				const geoRes = await fetchWithTimeout(
-					`https://ipapi.co/${ipV6}/json/`,
-					{},
-					2500,
-				);
-				const geoData = await geoRes.json();
-				const geoParts = [
-					geoData.country_name,
-					geoData.region,
-					geoData.city,
-				].filter(Boolean);
-				const ispPart = geoData.org ? `(${geoData.org})` : "";
-				ipV6Geo =
-					geoParts.length > 0
-						? `${geoParts.join(" ")} ${ispPart}`.trim()
-						: "未知";
-				return;
-			} catch (err) {}
-
-			ipV6Geo = "位置获取失败";
-		} else {
-			ipV6Geo = "无";
-		}
 	} catch (e) {
 		ipV6 = "未检测到 / 未启用";
-		ipV6Geo = "无";
 	} finally {
 		isTestingV6 = false;
-		isTestingV6Geo = false;
 	}
 }
 
@@ -244,6 +191,8 @@ async function testNAT() {
 	try {
 		const pc = new RTCPeerConnection({
 			iceServers: [
+				{ urls: "stun:stun.miwifi.com:3478" },
+				{ urls: "stun:stun.qhimg.com:3478" },
 				{ urls: "stun:stun.l.google.com:19302" },
 				{ urls: "stun:stun.twilio.com:3478" },
 			],
@@ -263,16 +212,22 @@ async function testNAT() {
 					if (cand.includes("srflx")) {
 						const parts = cand.split(" ");
 						const ip = parts[4];
-						const port = Number.parseInt(parts[5], 10);
-						const rportIdx = parts.indexOf("rport");
-						const rport =
-							rportIdx !== -1 ? Number.parseInt(parts[rportIdx + 1], 10) : 0;
-						srflxCandidates.push({ ip, port, rport });
+						// Filter out IPv6 srflx candidates to avoid NAT 4 false positives on dual-stack
+						if (ip && !ip.includes(":")) {
+							const port = Number.parseInt(parts[5], 10);
+							const rportIdx = parts.indexOf("rport");
+							const rport =
+								rportIdx !== -1 ? Number.parseInt(parts[rportIdx + 1], 10) : 0;
+							srflxCandidates.push({ ip, port, rport });
+						}
 					}
 					if (cand.includes("host")) {
 						const parts = cand.split(" ");
 						const ip = parts[4];
-						hostCandidates.push(ip);
+						// Filter out IPv6 host candidates
+						if (ip && !ip.includes(":")) {
+							hostCandidates.push(ip);
+						}
 					}
 				} else {
 					resolve();
@@ -330,11 +285,11 @@ async function testNAT() {
 			if (isSymmetric) {
 				detailedNatType = "对称型 (Symmetric NAT / NAT 4)";
 				natType =
-					"您的网络环境对不同的连接使用不同的公网端口。P2P 打洞联机极为困难，极易出现无法加入游戏，可能需要通过中继服务器进行连接。";
+					"您的网络环境对不同的连接使用不同的公网端口。这属于对称型 (NAT 4)。您与 NAT 1 和 NAT 2 用户可以正常打洞联机，但与 NAT 3 或同为 NAT 4 的用户无法直接打洞，此时需要通过中继 (TURN) 服务器进行连接。";
 			} else {
 				detailedNatType = "圆锥型 (Cone NAT / NAT 1/2/3)";
 				natType =
-					"您的网络环境端口映射规则固定，支持 P2P 直连与打洞。这通常对应 NAT 1 (Full Cone)、NAT 2 或 NAT 3，绝大多数 P2P 联机游戏和打洞均可顺利连通，联机环境良好。";
+					"您的网络环境端口映射规则固定，支持 P2P 直连与打洞。这通常对应 NAT 1 (Full Cone)、NAT 2 或 NAT 3。除了 NAT 3 用户遇到 NAT 4 (对称型) 无法直接打洞外，其余各种圆锥型 NAT 组合以及与公网的联机均可顺利连通，联机环境良好。";
 			}
 		} else {
 			natState = "failed";
@@ -439,16 +394,6 @@ onMount(() => {
                         {/if}
                     </div>
                 </div>
-                {#if ipV6.includes(':')}
-                    <div class="flex items-center justify-between">
-                        <span class="text-neutral-500 dark:text-neutral-400 font-medium">IPv6 归属地/运营商</span>
-                        {#if isTestingV6Geo}
-                            <span class="text-neutral-400 animate-pulse">正在定位...</span>
-                        {:else}
-                            <span class="text-neutral-600 dark:text-neutral-300 font-bold truncate max-w-[70%]" title={ipV6Geo}>{ipV6Geo}</span>
-                        {/if}
-                    </div>
-                {/if}
             </div>
         </div>
 
@@ -464,10 +409,10 @@ onMount(() => {
                     <span class="text-neutral-500 dark:text-neutral-400 font-medium">STUN 连接测试</span>
                     {#if natState === 'testing'}
                         <span class="text-neutral-400 animate-pulse">检测中...</span>
+                    {:else if natState === 'host'}
+                        <span class="text-green-600 dark:text-green-400 font-bold">🟢 公网直连</span>
                     {:else if natState === 'srflx'}
                         <span class="text-green-600 dark:text-green-400 font-bold">🟢 通信正常</span>
-                    {:else if natState === 'host'}
-                        <span class="text-green-600 dark:text-green-400 font-bold">🟢 局限通信</span>
                     {:else}
                         <span class="text-red-500 dark:text-red-400 font-bold">🔴 连接失败</span>
                     {/if}
