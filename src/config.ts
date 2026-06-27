@@ -56,11 +56,6 @@ export const navBarConfig: NavBarConfig = {
 				{ name: "网络诊断", url: "/tools/network/" },
 			],
 		},
-		{
-			name: "友链",
-			url: "/friends/",
-			external: false,
-		},
 	],
 };
 
