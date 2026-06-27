@@ -78,7 +78,12 @@ async function detectIPv4() {
 				2500,
 			);
 			const data = await res.json();
-			if (data.ret === "ok" && data.data && data.data.ip && !data.data.ip.includes(":")) {
+			if (
+				data.ret === "ok" &&
+				data.data &&
+				data.data.ip &&
+				!data.data.ip.includes(":")
+			) {
 				ipV4 = data.data.ip;
 				const location = data.data.location || [];
 				// location order: [country, region, city, district, isp]
@@ -267,7 +272,12 @@ async function testNAT() {
 						if (ip) {
 							if (ip.includes(":")) {
 								// Found public IPv6 via raw STUN IP direct connection!
-								if (ipV6 === "获取中..." || ipV6 === "未检测" || ipV6 === "未检测到 / 未启用" || ipV6.includes("DNS限制")) {
+								if (
+									ipV6 === "获取中..." ||
+									ipV6 === "未检测" ||
+									ipV6 === "未检测到 / 未启用" ||
+									ipV6.includes("DNS限制")
+								) {
 									ipV6 = ip;
 								}
 							} else {
@@ -275,7 +285,9 @@ async function testNAT() {
 								const port = Number.parseInt(parts[5], 10);
 								const rportIdx = parts.indexOf("rport");
 								const rport =
-									rportIdx !== -1 ? Number.parseInt(parts[rportIdx + 1], 10) : 0;
+									rportIdx !== -1
+										? Number.parseInt(parts[rportIdx + 1], 10)
+										: 0;
 								srflxCandidates.push({ ip, port, rport });
 							}
 						}
