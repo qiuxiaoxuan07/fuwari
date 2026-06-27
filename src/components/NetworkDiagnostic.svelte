@@ -70,7 +70,30 @@ async function detectIPv4() {
 	ipV4 = "获取中...";
 	ipV4Geo = "获取中...";
 	try {
-		// Try API 1: api-ipv4.ip.sb (forces IPv4 and supports CORS/HTTPS)
+		// Try API 1: myip.ipip.net/json (CORS-friendly, domestic direct connection)
+		try {
+			const res = await fetchWithTimeout(
+				"https://myip.ipip.net/json",
+				{},
+				2500,
+			);
+			const data = await res.json();
+			if (data.ret === "ok" && data.data && data.data.ip && !data.data.ip.includes(":")) {
+				ipV4 = data.data.ip;
+				const location = data.data.location || [];
+				// location order: [country, region, city, district, isp]
+				const geoParts = location.slice(0, 4).filter(Boolean);
+				const isp = location[4];
+				const ispPart = isp ? `(${isp})` : "";
+				ipV4Geo =
+					geoParts.length > 0
+						? `${geoParts.join(" ")} ${ispPart}`.trim()
+						: "未知";
+				return;
+			}
+		} catch (e) {}
+
+		// Try API 2: api-ipv4.ip.sb (forces IPv4 and supports CORS/HTTPS)
 		try {
 			const res = await fetchWithTimeout(
 				"https://api-ipv4.ip.sb/geoip",
@@ -93,7 +116,7 @@ async function detectIPv4() {
 			}
 		} catch (e) {}
 
-		// Try API 2: ipify (IPv4 only) + freeipapi (passing IPv4)
+		// Try API 3: ipify (IPv4 only) + freeipapi (passing IPv4)
 		try {
 			const ipRes = await fetchWithTimeout(
 				"https://api.ipify.org?format=json",
@@ -141,17 +164,42 @@ async function detectIPv4() {
 
 async function detectIPv6() {
 	isTestingV6 = true;
-	ipV6 = "获取中...";
+	// Only set to loading if we haven't already got a detailed IPv6 from STUN candidate
+	if (!ipV6.includes(":") || ipV6.includes("DNS限制")) {
+		ipV6 = "获取中...";
+	}
 	try {
-		const res = await fetchWithTimeout(
-			"https://api6.ipify.org?format=json",
-			{},
-			2500,
-		);
-		const data = await res.json();
-		ipV6 = data.ip || "获取失败";
-	} catch (e) {
-		ipV6 = "未检测到 / 未启用";
+		// Try API 1: api6.ipify.org (standard hostname detection)
+		try {
+			const res = await fetchWithTimeout(
+				"https://api6.ipify.org?format=json",
+				{},
+				2500,
+			);
+			const data = await res.json();
+			if (data.ip && data.ip.includes(":")) {
+				ipV6 = data.ip;
+				return;
+			}
+		} catch (e) {}
+
+		// Try API 2: Direct connection to Cloudflare IPv6 IP (verify if IPv6 routing works when DNS fails)
+		try {
+			await fetchWithTimeout(
+				"https://[2606:4700:4700::1111]/cdn-cgi/trace",
+				{ mode: "no-cors" },
+				2500,
+			);
+			// If we got here, IPv6 routing is definitely working!
+			if (!ipV6.includes(":") || ipV6.includes("DNS限制")) {
+				ipV6 = "已开启 (DNS限制，无法获取具体地址)";
+			}
+			return;
+		} catch (e) {}
+
+		if (!ipV6.includes(":") || ipV6.includes("DNS限制")) {
+			ipV6 = "未检测到 / 未启用";
+		}
 	} finally {
 		isTestingV6 = false;
 	}
@@ -195,6 +243,10 @@ async function testNAT() {
 				{ urls: "stun:stun.qhimg.com:3478" },
 				{ urls: "stun:stun.l.google.com:19302" },
 				{ urls: "stun:stun.twilio.com:3478" },
+				// IPv6 Literals (Bypasses IPv6 DNS resolution)
+				{ urls: "stun:[2001:678:b28::118]:3478" },
+				{ urls: "stun:[2a03:8600::89]:3478" },
+				{ urls: "stun:[2a01:4f8:242:56ca::2]:3478" },
 			],
 		});
 
@@ -212,13 +264,20 @@ async function testNAT() {
 					if (cand.includes("srflx")) {
 						const parts = cand.split(" ");
 						const ip = parts[4];
-						// Filter out IPv6 srflx candidates to avoid NAT 4 false positives on dual-stack
-						if (ip && !ip.includes(":")) {
-							const port = Number.parseInt(parts[5], 10);
-							const rportIdx = parts.indexOf("rport");
-							const rport =
-								rportIdx !== -1 ? Number.parseInt(parts[rportIdx + 1], 10) : 0;
-							srflxCandidates.push({ ip, port, rport });
+						if (ip) {
+							if (ip.includes(":")) {
+								// Found public IPv6 via raw STUN IP direct connection!
+								if (ipV6 === "获取中..." || ipV6 === "未检测" || ipV6 === "未检测到 / 未启用" || ipV6.includes("DNS限制")) {
+									ipV6 = ip;
+								}
+							} else {
+								// Filter out IPv6 srflx candidates to avoid NAT 4 false positives on dual-stack
+								const port = Number.parseInt(parts[5], 10);
+								const rportIdx = parts.indexOf("rport");
+								const rport =
+									rportIdx !== -1 ? Number.parseInt(parts[rportIdx + 1], 10) : 0;
+								srflxCandidates.push({ ip, port, rport });
+							}
 						}
 					}
 					if (cand.includes("host")) {
